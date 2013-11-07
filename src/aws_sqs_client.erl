@@ -6,21 +6,22 @@
 
 -import(queue_attributes, []).
 
-
 -export([create_client/3
        , add_permission/1
 ]).
 
-
 -spec create_client(string(), string(), string()) -> aws_sqs_client().
-create_client(AccessKey, SecretKey, Endpoint) ->
+create_client(AccessKey, SecretKey, Region) ->
   Credentials = #aws_credentials{ access_key = AccessKey, secret_key = SecretKey },
-  Configuration = #aws_configuration{ endpoint = Endpoint },
-  #aws_sqs_client{ credentials = Credentials, configuration = Configuration }.
+  Endpoint = "sqs." ++ Region ++ ".amazonaws.com",
+  Configuration = #aws_configuration{ region = Region, endpoint = Endpoint },
+  #aws_client{ credentials = Credentials,
+               configuration = Configuration,
+               service = "sqs" }.
 
 -spec execute_request(aws_sqs_client(), integer(), [param()]) -> response().
 execute_request(Client, Type, Params) ->
-  Url = Client#aws_sqs_client.configuration#aws_configuration.endpoint,
+  Url = Client#aws_client.configuration#aws_configuration.endpoint,
   Url.
 
 add_permission(Client) ->

@@ -3,6 +3,7 @@
 
 -record(aws_credentials, { access_key :: string(),
                            secret_key :: string() }).
+
 -type aws_credentials() :: #aws_credentials{}.
 
 -endif.
