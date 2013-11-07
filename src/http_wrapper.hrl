@@ -7,4 +7,7 @@
 -record(param, { key :: string(), value :: string() }).
 -type param() :: #param{}.
 
+-record(response, { status :: integer(), content :: any() }).
+-type response() :: #response{}.
+
 -endif.
