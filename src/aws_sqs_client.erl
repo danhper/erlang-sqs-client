@@ -4,6 +4,9 @@
 -include_lib("request_type.hrl").
 -include_lib("http_wrapper.hrl").
 
+-import(queue_attributes, []).
+
+
 -export([create_client/3
        , add_permission/1
 ]).
