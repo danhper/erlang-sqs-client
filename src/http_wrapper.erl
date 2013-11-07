@@ -33,14 +33,14 @@ parse_response(Type, Content) ->
     _ -> Content
   end.
 
--spec handle_response(any()) -> response()
+-spec handle_good_response(any()) -> response().
 handle_good_response(Content) ->
   { { _, Status, _ }, Headers, Body } = Content,
   ContentTypeInfo = proplists:get_value("content-type", Headers),
   [ ContentType | _ ] = string:tokens(ContentTypeInfo, ";"),
   #response{ status = Status, content = parse_response(ContentType, Body) }.
 
--spec handle_response(any()) -> response()
+-spec handle_response(any()) -> response().
 handle_response(Response) ->
   { Flag, Content } = Response,
   case Flag of
