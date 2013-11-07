@@ -1,0 +1,14 @@
+{application, sqs_client,
+ [
+  {description, "Client for Amazon SQS"},
+  {vsn, "0.1"},
+  {modules, [sqs_client]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { sqs_client_app, []}},
+  {env, []}
+ ]}.
+

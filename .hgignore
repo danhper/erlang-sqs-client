@@ -1,0 +1,6 @@
+syntax: glob
+
+# Compiled files
+ebin/
+deps/
+.eunit/
