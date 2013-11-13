@@ -1,5 +1,3 @@
-syntax: glob
-
 # Compiled files
 ebin/
 deps/
