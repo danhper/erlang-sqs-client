@@ -8,5 +8,7 @@ Erlang client for Amazon SQS
 
 ## Build
 To build the sqs_client library just run make.
-$ make
 
+```
+$ make
+```
