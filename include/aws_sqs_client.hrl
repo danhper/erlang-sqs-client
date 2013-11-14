@@ -5,4 +5,6 @@
 
 -type aws_sqs_client() :: aws_client().
 
+-define(API_VERSION, "2012-11-05").
+
 -endif.

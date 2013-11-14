@@ -15,7 +15,8 @@
 
 -export([
   authenticate_get_request/2,
-  authenticate_post_request/2
+  authenticate_post_request/2,
+  authenticate_request/2
 ]).
 
 -spec hash(string()) -> string().
@@ -110,3 +111,10 @@ authenticate_post_request(Client, BaseRequest) ->
   AuthHeader = ?ALGORITHM ++ string:join([" Credential=" ++ get_credentials(Key, DateStamp, RegionName, ServiceName), "SignedHeaders=" ++ SignedHeaders, "Signature=" ++ Signature], ", "),
   FinalHeaders = Headers ++ [http_wrapper:param("Authorization", AuthHeader)],
   Request#request{headers = FinalHeaders}.
+
+-spec authenticate_request(aws_client(), request()) -> request().
+authenticate_request(Client, Request) ->
+  case Request#request.method of
+    "get" -> authenticate_get_request(Client, Request);
+    "post" -> authenticate_post_request(Client, Request)
+  end.
