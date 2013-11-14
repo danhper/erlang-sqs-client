@@ -2,6 +2,7 @@
 
 -include_lib("http_wrapper.hrl").
 -export([
+  execute_get/1,
   execute_get/2,
   execute_post/3,
   param/2,
@@ -20,7 +21,7 @@ append_slash(Url) ->
 
 -spec generate_param(param()) -> string().
 generate_param(Param) ->
-  Param#param.key ++ "=" ++ edoc_lib:escape_uri(Param#param.value).
+  Param#param.key ++ "=" ++ http_uri:encode(Param#param.value).
 
 
 -spec canonical_header(param()) -> string().
@@ -30,6 +31,7 @@ canonical_header(Header) ->
 -spec generate_header(param()) -> string().
 generate_header(Header) ->
   Header#param.key ++ ":" ++ Header#param.value.
+
 
 -spec generate_params([param()]) -> string().
 generate_params(Params) ->
@@ -47,7 +49,7 @@ generate_url(BaseUrl, Params) ->
 -spec parse_response(string(), string()) -> any().
 parse_response(Type, Content) ->
   case Type of
-    "text/xml" -> xmerl_scan:string(Content);
+    % "text/xml" -> xmerl_scan:string(Content);
     _ -> Content
   end.
 
@@ -65,6 +67,16 @@ handle_response(Response) ->
     ok    -> handle_good_response(Content);
     error -> #response{ status = -1 }
   end.
+
+
+-spec execute_get(request()) -> response().
+execute_get(Request) ->
+  BaseUrl = "http://" ++ Request#request.uri ++ Request#request.path,
+  Url = generate_url(BaseUrl, Request#request.query),
+  io:format("URL: ~s~n", [Url]),
+  Headers = lists:map((fun(H) -> { H#param.key, H#param.value } end), Request#request.headers),
+  Response = httpc:request(get, { Url, Headers}, [], []),
+  handle_response(Response).
 
 -spec execute_get(string(), [param()]) -> response().
 execute_get(BaseUrl, Params) ->
