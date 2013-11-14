@@ -16,7 +16,7 @@ append_slash(Url) ->
 
 -spec generate_param(param()) -> string().
 generate_param(Param) ->
-  Param#param.key ++ "=" ++ Param#param.value.
+  Param#param.key ++ "=" ++ edoc_lib:escape_uri(Param#param.value).
 
 -spec generate_params([param()]) -> string().
 generate_params(Params) ->
