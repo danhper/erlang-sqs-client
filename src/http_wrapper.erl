@@ -1,6 +1,11 @@
 -module(http_wrapper).
+
 -include_lib("http_wrapper.hrl").
--export([execute_get/2, param/2]).
+-export([
+  execute_get/2,
+  execute_post/3,
+  param/2]
+).
 
 -spec append_slash(string()) -> string().
 append_slash(Url) ->
@@ -54,6 +59,14 @@ execute_get(BaseUrl, Params) ->
   io:format("URL: ~s~n", [Url]),
   Response = httpc:request(get, { Url, []}, [], []),
   handle_response(Response).
+
+-spec execute_post(string(), [param()], [param()]) -> response().
+execute_post(BaseUrl, QueryParams, BodyParams) ->
+  Url = generate_url(BaseUrl, QueryParams),
+  BodyParamsString = generate_params(BodyParams),
+  Response = httpc:request(post, { Url, [], "application/x-www-form-urlencoded", BodyParamsString}, [], []),
+  handle_response(Response).
+
 
 -spec param(string(), string()) -> param().
 param(Key, Value) ->
