@@ -7,7 +7,9 @@
 -import(http_wrapper, [
   param/2,
   generate_params/1,
-  canonical_header/1
+  canonical_header/1,
+  sort_by_key/1,
+  append_slash/1
 ]).
 
 -export([
@@ -21,7 +23,7 @@ hash(Input) ->
 -spec generate_canonical_request(request()) -> string().
 generate_canonical_request(Request) ->
   Method = string:to_upper(Request#request.method),
-  Path = Request#request.path,
+  Path = http_wrapper:append_slash(Request#request.path),
   Query = http_wrapper:generate_params(Request#request.query),
   Headers = string:join(lists:map((fun(H) -> http_wrapper:canonical_header(H) end), Request#request.headers), ""),
   SignedHeaders = string:join(lists:map((fun(H) -> string:to_lower(H#param.key) end), Request#request.headers), ";"),
@@ -71,7 +73,7 @@ authenticate_get_request(Client, BaseRequest) ->
      http_wrapper:param("X-Amz-Date", date_util:to_iso8601(Date)),
      http_wrapper:param("X-Amz-SignedHeaders", "host")
   ],
-  Params = BaseRequest#request.query ++ AuthParams,
+  Params = http_wrapper:sort_by_key(BaseRequest#request.query ++ AuthParams),
   Request = BaseRequest#request{query = Params},
   io:fwrite("~s\n\n", [generate_canonical_request(Request)]),
   HashedRequest = generate_hashed_request(Request),

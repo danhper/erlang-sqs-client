@@ -12,7 +12,8 @@
   create_client/3,
   add_permission/1,
   create_queue/2,
-  create_queue/3
+  create_queue/3,
+  send_message/2
 ]).
 
 -spec create_client(string(), string(), string()) -> aws_sqs_client().
@@ -58,3 +59,11 @@ create_queue(Client, Name, Attributes) ->
     param("QueueName", Name)
   ],
   execute_get_request(Client, Params).
+
+-spec send_message(aws_sqs_client(), string()) -> response().
+send_message(Client, Message) ->
+  Params = [
+    param("Action", "SendMessage"),
+    param("MessageBody", Message)
+  ],
+  execute_get_request(Client, "/634433121014/foo", Params).

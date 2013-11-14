@@ -9,7 +9,9 @@
   generate_header/1,
   canonical_header/1,
   generate_param/1,
-  generate_params/1
+  generate_params/1,
+  sort_by_key/1,
+  append_slash/1
 ]).
 
 -spec append_slash(string()) -> string().
@@ -96,3 +98,11 @@ execute_post(BaseUrl, QueryParams, BodyParams) ->
 -spec param(string(), string()) -> param().
 param(Key, Value) ->
   #param{ key = Key, value = Value }.
+
+-spec key_sorter(param(), param()) -> boolean().
+key_sorter(First, Second) ->
+  First#param.key < Second#param.key.
+
+-spec sort_by_key([param()]) -> [param()].
+sort_by_key(Params) ->
+  lists:sort(fun key_sorter/2, Params).
