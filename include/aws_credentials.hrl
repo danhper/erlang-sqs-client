@@ -6,4 +6,6 @@
 
 -type aws_credentials() :: #aws_credentials{}.
 
+-define(ALGORITHM, "AWS4-HMAC-SHA256").
+
 -endif.

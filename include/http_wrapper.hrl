@@ -10,4 +10,14 @@
 -record(response, { status :: integer(), content :: any() }).
 -type response() :: #response{}.
 
+-record(request, {
+  method  :: string(),
+  uri     :: string(),
+  query   :: [param()],
+  headers :: [param()],
+  payload :: string()
+}).
+
+-type request() :: #request{}.
+
 -endif.

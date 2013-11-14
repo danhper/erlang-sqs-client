@@ -4,8 +4,12 @@
 -export([
   execute_get/2,
   execute_post/3,
-  param/2]
-).
+  param/2,
+  generate_header/1,
+  canonical_header/1,
+  generate_param/1,
+  generate_params/1
+]).
 
 -spec append_slash(string()) -> string().
 append_slash(Url) ->
@@ -17,6 +21,15 @@ append_slash(Url) ->
 -spec generate_param(param()) -> string().
 generate_param(Param) ->
   Param#param.key ++ "=" ++ edoc_lib:escape_uri(Param#param.value).
+
+
+-spec canonical_header(param()) -> string().
+canonical_header(Header) ->
+  string:to_lower(Header#param.key) ++ ":" ++ string:strip(Header#param.value) ++ "\n".
+
+-spec generate_header(param()) -> string().
+generate_header(Header) ->
+  Header#param.key ++ ":" ++ Header#param.value.
 
 -spec generate_params([param()]) -> string().
 generate_params(Params) ->

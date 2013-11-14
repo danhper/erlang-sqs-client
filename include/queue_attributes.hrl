@@ -8,4 +8,6 @@
                             receive_message_wait_time_seconds = 0 :: integer(),
                             visibility_timeout = 30 :: integer() }).
 
+-type queue_attributes() :: #queue_attributes{}.
+
 -endif.
