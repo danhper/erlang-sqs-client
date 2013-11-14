@@ -58,15 +58,27 @@ generate_signature_key(Key, DateStamp, RegionName, ServiceName) ->
   ServiceKey = hmac:hmac256(RegionKey, ServiceName),
   hmac:hmac256(ServiceKey, "aws4_request").
 
-
--spec authenticate_get_request(aws_client(), request()) -> request().
-authenticate_get_request(Client, BaseRequest) ->
-  Date = BaseRequest#request.date,
+-spec get_base_info(aws_client(), request()) -> { calendar:datetime(), string(), string(), string(), string(), string() }.
+get_base_info(Client, Request) ->
+  Date = Request#request.date,
   DateStamp = date_util:to_iso8601_date(Date),
   Key = Client#aws_client.credentials#aws_credentials.access_key,
   Secret = Client#aws_client.credentials#aws_credentials.secret_key,
   RegionName = Client#aws_client.configuration#aws_configuration.region,
   ServiceName = Client#aws_client.service,
+  { Date, DateStamp, Key, Secret, RegionName, ServiceName }.
+
+
+-spec make_signature(request(), calendar:datetime(), string(), string(), string()) -> string().
+make_signature(Request, Date, RegionName, ServiceName, Secret) ->
+  HashedRequest = generate_hashed_request(Request),
+  StringToSign = get_string_to_sign(Date, RegionName, ServiceName, HashedRequest),
+  SigningKey = generate_signature_key(Secret, date_util:to_iso8601_date(Date), RegionName, ServiceName),
+  generate_signature(SigningKey, StringToSign).
+
+-spec authenticate_get_request(aws_client(), request()) -> request().
+authenticate_get_request(Client, BaseRequest) ->
+  { Date, DateStamp, Key, Secret, RegionName, ServiceName } = get_base_info(Client, BaseRequest),
   AuthParams = [
      http_wrapper:param("X-Amz-Algorithm", ?ALGORITHM),
      http_wrapper:param("X-Amz-Credential", get_credentials(Key, DateStamp, RegionName, ServiceName)),
@@ -75,12 +87,10 @@ authenticate_get_request(Client, BaseRequest) ->
   ],
   Params = http_wrapper:sort_by_key(BaseRequest#request.query ++ AuthParams),
   Request = BaseRequest#request{query = Params},
-  io:fwrite("~s\n\n", [generate_canonical_request(Request)]),
-  HashedRequest = generate_hashed_request(Request),
-  StringToSign = get_string_to_sign(Date, RegionName, ServiceName, HashedRequest),
-  io:fwrite("~s\n\n", [StringToSign]),
-  SigningKey = generate_signature_key(Secret, date_util:to_iso8601_date(Date), RegionName, ServiceName),
-  Signature = generate_signature(SigningKey, StringToSign),
+  Signature = make_signature(Request, Date, RegionName, ServiceName, Secret),
   FinalParams = Params ++ [http_wrapper:param("X-Amz-Signature", Signature)],
   Request#request{query = FinalParams}.
+
+% -spec authenticate_post_request(aws_client(), request()) -> request().
+% authenticate_post_request(Client, BaseRequest) ->
 
