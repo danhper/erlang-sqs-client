@@ -8,12 +8,14 @@
   param/2,
   generate_params/1,
   canonical_header/1,
+  signed_header/1,
   sort_by_key/1,
   append_slash/1
 ]).
 
 -export([
-  authenticate_get_request/2
+  authenticate_get_request/2,
+  authenticate_post_request/2
 ]).
 
 -spec hash(string()) -> string().
@@ -76,6 +78,10 @@ make_signature(Request, Date, RegionName, ServiceName, Secret) ->
   SigningKey = generate_signature_key(Secret, date_util:to_iso8601_date(Date), RegionName, ServiceName),
   generate_signature(SigningKey, StringToSign).
 
+-spec get_signed_headers(request()) -> string().
+get_signed_headers(Request) ->
+  string:join(lists:map(fun http_wrapper:signed_header/1, Request#request.headers), ";").
+
 -spec authenticate_get_request(aws_client(), request()) -> request().
 authenticate_get_request(Client, BaseRequest) ->
   { Date, DateStamp, Key, Secret, RegionName, ServiceName } = get_base_info(Client, BaseRequest),
@@ -83,7 +89,7 @@ authenticate_get_request(Client, BaseRequest) ->
      http_wrapper:param("X-Amz-Algorithm", ?ALGORITHM),
      http_wrapper:param("X-Amz-Credential", get_credentials(Key, DateStamp, RegionName, ServiceName)),
      http_wrapper:param("X-Amz-Date", date_util:to_iso8601(Date)),
-     http_wrapper:param("X-Amz-SignedHeaders", "host")
+     http_wrapper:param("X-Amz-SignedHeaders", get_signed_headers(BaseRequest))
   ],
   Params = http_wrapper:sort_by_key(BaseRequest#request.query ++ AuthParams),
   Request = BaseRequest#request{query = Params},
@@ -91,6 +97,16 @@ authenticate_get_request(Client, BaseRequest) ->
   FinalParams = Params ++ [http_wrapper:param("X-Amz-Signature", Signature)],
   Request#request{query = FinalParams}.
 
-% -spec authenticate_post_request(aws_client(), request()) -> request().
-% authenticate_post_request(Client, BaseRequest) ->
-
+-spec authenticate_post_request(aws_client(), request()) -> request().
+authenticate_post_request(Client, BaseRequest) ->
+  { Date, DateStamp, Key, Secret, RegionName, ServiceName } = get_base_info(Client, BaseRequest),
+  Headers = BaseRequest#request.headers ++ [
+    http_wrapper:param("Content-type", "application/x-www-form-urlencoded; charset=utf-8"),
+    http_wrapper:param("x-amz-date", date_util:to_iso8601(Date))
+  ],
+  Request = BaseRequest#request{headers = Headers},
+  SignedHeaders = get_signed_headers(Request),
+  Signature = make_signature(Request, Date, RegionName, ServiceName, Secret),
+  AuthHeader = ?ALGORITHM ++ string:join([" Credential=" ++ get_credentials(Key, DateStamp, RegionName, ServiceName), "SignedHeaders=" ++ SignedHeaders, "Signature=" ++ Signature], ", "),
+  FinalHeaders = Headers ++ [http_wrapper:param("Authorization", AuthHeader)],
+  Request#request{headers = FinalHeaders}.

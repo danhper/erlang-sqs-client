@@ -8,6 +8,7 @@
   param/2,
   generate_header/1,
   canonical_header/1,
+  signed_header/1,
   generate_param/1,
   generate_params/1,
   sort_by_key/1,
@@ -25,6 +26,9 @@ append_slash(Url) ->
 generate_param(Param) ->
   Param#param.key ++ "=" ++ http_uri:encode(Param#param.value).
 
+-spec signed_header(param()) -> string().
+signed_header(Header) ->
+  string:to_lower(Header#param.key).
 
 -spec canonical_header(param()) -> string().
 canonical_header(Header) ->
