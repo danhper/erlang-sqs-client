@@ -44,6 +44,22 @@ execute_get_request(Client, UrlPath, BaseParams) ->
   AuthenticatedRequest = aws_credentials:authenticate_get_request(Client, Request),
   http_wrapper:execute_get(AuthenticatedRequest).
 
+
+-spec execute_post_request(aws_sqs_client(), string(), [param()], string()) -> response().
+execute_post_request(Client, UrlPath, BaseParams, Body) ->
+  Host = Client#aws_client.configuration#aws_configuration.endpoint,
+  Version = http_wrapper:param("Version", "2012-11-05"),
+  Request = #request{
+    method  = "post",
+    uri     = Host,
+    path    = UrlPath,
+    query   = BaseParams,
+    headers = [http_wrapper:param("Host", Host)],
+    payload = Body
+  },
+  AuthenticatedRequest = aws_credentials:authenticate_post_request(Client, Request),
+  http_wrapper:execute_request(AuthenticatedRequest).
+
 -spec add_permission(aws_sqs_client()) -> response().
 add_permission(Client) ->
   execute_get_request(Client, "", []).
@@ -62,8 +78,8 @@ create_queue(Client, Name, Attributes) ->
 
 -spec send_message(aws_sqs_client(), string()) -> response().
 send_message(Client, Message) ->
-  Params = [
-    param("Action", "SendMessage"),
-    param("MessageBody", Message)
-  ],
-  execute_get_request(Client, "/634433121014/foo", Params).
+  % Params = [
+  %   param("Action", "SendMessage"),
+  %   param("MessageBody", Message)
+  % ],
+  execute_post_request(Client, "/634433121014/foo", [], "Action=SendMessage&MessageBody=" ++ Message).

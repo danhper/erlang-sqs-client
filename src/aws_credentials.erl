@@ -101,10 +101,10 @@ authenticate_get_request(Client, BaseRequest) ->
 authenticate_post_request(Client, BaseRequest) ->
   { Date, DateStamp, Key, Secret, RegionName, ServiceName } = get_base_info(Client, BaseRequest),
   Headers = BaseRequest#request.headers ++ [
-    http_wrapper:param("Content-type", "application/x-www-form-urlencoded; charset=utf-8"),
+    http_wrapper:param("Content-type", "application/x-www-form-urlencoded"),
     http_wrapper:param("x-amz-date", date_util:to_iso8601(Date))
   ],
-  Request = BaseRequest#request{headers = Headers},
+  Request = BaseRequest#request{headers = http_wrapper:sort_by_key(Headers)},
   SignedHeaders = get_signed_headers(Request),
   Signature = make_signature(Request, Date, RegionName, ServiceName, Secret),
   AuthHeader = ?ALGORITHM ++ string:join([" Credential=" ++ get_credentials(Key, DateStamp, RegionName, ServiceName), "SignedHeaders=" ++ SignedHeaders, "Signature=" ++ Signature], ", "),

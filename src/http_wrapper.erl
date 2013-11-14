@@ -5,6 +5,7 @@
   execute_get/1,
   execute_get/2,
   execute_post/3,
+  execute_request/1,
   param/2,
   generate_header/1,
   canonical_header/1,
@@ -74,6 +75,16 @@ handle_response(Response) ->
     error -> #response{ status = -1 }
   end.
 
+-spec execute_request(request()) -> response().
+execute_request(Request) ->
+  BaseUrl = "http://" ++ Request#request.uri ++ Request#request.path,
+  Url = generate_url(BaseUrl, Request#request.query),
+  Headers = lists:map((fun(H) -> { H#param.key, H#param.value } end), Request#request.headers),
+  Response = case Request#request.method of
+    "get" -> httpc:request(get, { Url, Headers }, [], []);
+    "post" -> httpc:request(post, { Url, Headers, "application/x-www-form-urlencoded", Request#request.payload }, [], [])
+  end,
+  handle_response(Response).
 
 -spec execute_get(request()) -> response().
 execute_get(Request) ->
@@ -81,7 +92,7 @@ execute_get(Request) ->
   Url = generate_url(BaseUrl, Request#request.query),
   io:format("URL: ~s~n", [Url]),
   Headers = lists:map((fun(H) -> { H#param.key, H#param.value } end), Request#request.headers),
-  Response = httpc:request(get, { Url, Headers}, [], []),
+  Response = httpc:request(get, { Url, Headers }, [], []),
   handle_response(Response).
 
 -spec execute_get(string(), [param()]) -> response().
