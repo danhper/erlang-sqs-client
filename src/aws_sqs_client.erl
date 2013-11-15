@@ -13,7 +13,9 @@
   add_permission/1,
   create_queue/2,
   create_queue/3,
-  send_message/2
+  send_message/2,
+  list_queues/1,
+  list_queues/2
 ]).
 
 -spec create_client(string(), string(), string()) -> aws_sqs_client().
@@ -89,3 +91,18 @@ create_queue(Client, Name, Attributes) ->
 -spec send_message(aws_sqs_client(), string()) -> response().
 send_message(Client, Message) ->
   execute_post_request(Client, "/634433121014/foo", [], "Action=SendMessage&MessageBody=" ++ Message).
+
+-spec list_queues(aws_client()) -> response().
+list_queues(Client) ->
+  list_queues(Client, "").
+
+-spec list_queues(aws_client(), string()) -> response().
+list_queues(Client, Prefix) ->
+  ExtraParams = if
+    length(Prefix) > 0 -> [param("QueueNamePrefix", Prefix)];
+    true -> []
+  end,
+  Params = [
+    param("Action", "ListQueues")
+  ] ++ ExtraParams,
+  execute_get_request(Client, Params).

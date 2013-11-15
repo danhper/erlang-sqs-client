@@ -56,7 +56,7 @@ generate_url(BaseUrl, Params) ->
 -spec parse_response(string(), string()) -> any().
 parse_response(Type, Content) ->
   case Type of
-    % "text/xml" -> xmerl_scan:string(Content);
+    "text/xml" -> xmerl_scan:string(Content);
     _ -> Content
   end.
 
