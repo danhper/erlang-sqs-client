@@ -11,12 +11,12 @@
 -type response() :: #response{}.
 
 -record(request, {
-  method       :: string(),
-  uri          :: string(),
-  path = "/"   :: string(),
-  query = []   :: [param()],
-  headers      :: [param()],
-  payload = "" :: string(),
+  method = "get" :: string(),
+  uri            :: string(),
+  path    = "/"  :: string(),
+  query   = []   :: [param()],
+  headers = []   :: [param()],
+  payload = ""   :: string(),
   date = now()
 }).
 

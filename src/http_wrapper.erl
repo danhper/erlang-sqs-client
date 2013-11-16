@@ -2,9 +2,6 @@
 
 -include_lib("http_wrapper.hrl").
 -export([
-  execute_get/1,
-  execute_get/2,
-  execute_post/3,
   execute_request/1,
   param/2,
   generate_header/1,
@@ -38,7 +35,6 @@ canonical_header(Header) ->
 -spec generate_header(param()) -> string().
 generate_header(Header) ->
   Header#param.key ++ ":" ++ Header#param.value.
-
 
 -spec generate_params([param()]) -> string().
 generate_params(Params) ->
@@ -85,30 +81,6 @@ execute_request(Request) ->
     "post" -> httpc:request(post, { Url, Headers, "application/x-www-form-urlencoded", Request#request.payload }, [], [])
   end,
   handle_response(Response).
-
--spec execute_get(request()) -> response().
-execute_get(Request) ->
-  BaseUrl = "http://" ++ Request#request.uri ++ Request#request.path,
-  Url = generate_url(BaseUrl, Request#request.query),
-  io:format("URL: ~s~n", [Url]),
-  Headers = lists:map((fun(H) -> { H#param.key, H#param.value } end), Request#request.headers),
-  Response = httpc:request(get, { Url, Headers }, [], []),
-  handle_response(Response).
-
--spec execute_get(string(), [param()]) -> response().
-execute_get(BaseUrl, Params) ->
-  Url = generate_url(BaseUrl, Params),
-  io:format("URL: ~s~n", [Url]),
-  Response = httpc:request(get, { Url, []}, [], []),
-  handle_response(Response).
-
--spec execute_post(string(), [param()], [param()]) -> response().
-execute_post(BaseUrl, QueryParams, BodyParams) ->
-  Url = generate_url(BaseUrl, QueryParams),
-  BodyParamsString = generate_params(BodyParams),
-  Response = httpc:request(post, { Url, [], "application/x-www-form-urlencoded", BodyParamsString}, [], []),
-  handle_response(Response).
-
 
 -spec param(string(), string()) -> param().
 param(Key, Value) ->

@@ -27,50 +27,29 @@ create_client(AccessKey, SecretKey, Region) ->
                configuration = Configuration,
                service = "sqs" }.
 
-
--spec execute_get_request(aws_sqs_client(), [param()]) -> response().
-execute_get_request(Client, BaseParams) ->
-  execute_get_request(Client, "/", BaseParams).
-
--spec execute_get_request(aws_sqs_client(), string(), [param()]) -> response().
-execute_get_request(Client, UrlPath, BaseParams) ->
+-spec get_basic_info(aws_client(), request()) -> { string(), [param()], string() }.
+get_basic_info(Client, Request) ->
   Host = Client#aws_client.configuration#aws_configuration.endpoint,
-  Version = http_wrapper:param("Version", "2012-11-05"),
-  Request = #request{
-    method  = "get",
-    uri     = Host,
-    path    = UrlPath,
-    query   = BaseParams ++ [Version],
-    headers = [http_wrapper:param("Host", Host)]
-  },
-  AuthenticatedRequest = aws_credentials:authenticate_get_request(Client, Request),
-  http_wrapper:execute_get(AuthenticatedRequest).
+  VersionHeaders = case Request#request.method of
+    "get"  -> [param("Version", ?API_VERSION)];
+    "post" -> []
+  end,
+  Uri = case Request#request.uri of
+    undefined  -> Host;
+    RequestUri -> RequestUri
+  end,
+  { Host, VersionHeaders, Uri }.
 
-
--spec execute_post_request(aws_sqs_client(), string(), [param()], string()) -> response().
-execute_post_request(Client, UrlPath, BaseParams, Body) ->
-  Host = Client#aws_client.configuration#aws_configuration.endpoint,
-  Version = http_wrapper:param("Version", "2012-11-05"),
-  Request = #request{
-    method  = "post",
-    uri     = Host,
-    path    = UrlPath,
-    query   = BaseParams,
-    headers = [http_wrapper:param("Host", Host)],
-    payload = Body
+-spec make_sqs_request(aws_client(), request()) -> response().
+make_sqs_request(Client, BaseRequest) ->
+  { Host, VersionHeaders, Uri } = get_basic_info(Client, BaseRequest),
+  Request = BaseRequest#request{
+    query   = BaseRequest#request.query ++ VersionHeaders,
+    headers = BaseRequest#request.headers ++ [param("Host", Host)],
+    uri     = Uri
   },
   AuthenticatedRequest = aws_credentials:authenticate_request(Client, Request),
   http_wrapper:execute_request(AuthenticatedRequest).
-
--spec make_sqs_request(request(), aws_client()) -> response().
-make_sqs_request(BaseRequest, Client) ->
-  Version = http_wrapper:param("Version", ?API_VERSION),
-  Host = http_wrapper:param("Host", Client#aws_client.configuration#aws_configuration.endpoint),
-  WithQuery = BaseRequest#request{ query = BaseRequest#request.query ++ [Version] },
-  WithHeaders = WithQuery#request{ headers = WithQuery#request.headers ++ [Host] },
-  Request = aws_credentials:authenticate_request(Client, WithHeaders),
-  http_wrapper:execute_request(Request).
-
 
 -spec add_permission(aws_sqs_client()) -> response().
 add_permission(Client) ->
@@ -86,11 +65,15 @@ create_queue(Client, Name, Attributes) ->
     param("Action", "CreateQueue"),
     param("QueueName", Name)
   ],
-  execute_get_request(Client, Params).
+  make_sqs_request(Client, #request{ query = Params }).
 
 -spec send_message(aws_sqs_client(), string()) -> response().
 send_message(Client, Message) ->
-  execute_post_request(Client, "/634433121014/foo", [], "Action=SendMessage&MessageBody=" ++ Message).
+  make_sqs_request(Client, #request{
+    method  = "post",
+    path    = "/634433121014/foo",
+    payload = "Action=SendMessage&MessageBody=" ++ Message
+  }).
 
 -spec list_queues(aws_client()) -> response().
 list_queues(Client) ->
@@ -98,11 +81,9 @@ list_queues(Client) ->
 
 -spec list_queues(aws_client(), string()) -> response().
 list_queues(Client, Prefix) ->
-  ExtraParams = if
-    length(Prefix) > 0 -> [param("QueueNamePrefix", Prefix)];
-    true -> []
-  end,
-  Params = [
-    param("Action", "ListQueues")
-  ] ++ ExtraParams,
-  execute_get_request(Client, Params).
+  make_sqs_request(Client, #request{
+    query = [param("Action", "ListQueues")] ++ if
+      length(Prefix) > 0 -> [param("QueueNamePrefix", Prefix)];
+      true -> []
+    end
+  }).
