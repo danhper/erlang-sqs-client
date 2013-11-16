@@ -2,6 +2,8 @@ REBAR:=rebar
 
 .PHONY: all erl test clean doc 
 
+FOO=/usr/lib/erlang/lib/xmerl-1.3.4/include
+
 all: erl
 
 erl:
