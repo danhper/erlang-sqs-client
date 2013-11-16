@@ -10,7 +10,8 @@
 
 -record(aws_response, {
   request_id  :: string(),
-  content     :: aws_result()
+  content     :: aws_result(),
+  type
 }).
 
 -type aws_response() :: #aws_response{}.

@@ -12,7 +12,7 @@
 
 -spec parse_error_response(xmlElement()) -> aws_response().
 parse_error_response(Xml) ->
-  lists:foldl(fun parse_error_node/2, #aws_response{}, Xml#xmlElement.content).
+  lists:foldl(fun parse_error_node/2, #aws_response{ type = error_response }, Xml#xmlElement.content).
 
 -spec parse_error_node(xmlElement(), aws_response()) -> aws_response().
 parse_error_node(Xml, Response) ->
