@@ -4,7 +4,8 @@
 -record(sqs_message, {
   id      :: string(),
   content :: string(),
-  md5sum  :: string()
+  md5sum  :: string(),
+  delay   :: integer()
 }).
 
 -type sqs_message() :: #sqs_message{}.

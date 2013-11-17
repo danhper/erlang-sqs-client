@@ -66,22 +66,27 @@ create_queue(Client, Name, Attributes) ->
   Params = [
     param("Action", "CreateQueue"),
     param("QueueName", Name)
-  ],
-  make_sqs_request(Client, #request{ query = Params }).
+  ] ++ queue_attributes:to_params(Attributes),
+  make_sqs_request(Client, #request{
+    method="post",
+    payload = http_wrapper:generate_params(Params)
+  }).
 
 -spec send_message(aws_sqs_client(), sqs_queue(), string()) -> response().
+send_message(Client, Queue, Message) when is_list(Message) ->
+  send_message(Client, Queue, #sqs_message{ content = Message });
 send_message(Client, Queue, Message) ->
   Endpoint = Client#aws_client.configuration#aws_configuration.endpoint,
+  Params = [param("Action", "SendMessage") | sqs_message:to_params(Message)],
   { Status, Response } = make_sqs_request(Client, #request{
     method  = "post",
     path    = sqs_queue:get_path(Queue, Endpoint),
-    payload = "Action=SendMessage&MessageBody=" ++ Message
+    payload = http_wrapper:generate_params(Params)
   }),
   case Status of
     200 -> { Status, Response#aws_response.content#sqs_message{ content = Message }};
     _   -> { Status, Response }
   end.
-
 
 -spec list_queues(aws_client()) -> response().
 list_queues(Client) ->
