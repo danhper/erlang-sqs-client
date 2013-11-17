@@ -42,7 +42,7 @@ get_basic_info(Client, Request) ->
   end,
   { Host, VersionHeaders, Uri }.
 
--spec make_sqs_request(aws_client(), request()) -> response().
+-spec make_sqs_request(aws_client(), request()) -> aws_response().
 make_sqs_request(Client, BaseRequest) ->
   { Host, VersionHeaders, Uri } = get_basic_info(Client, BaseRequest),
   Request = BaseRequest#request{
@@ -51,17 +51,14 @@ make_sqs_request(Client, BaseRequest) ->
     uri     = Uri
   },
   AuthenticatedRequest = aws_credentials:authenticate_request(Client, Request),
-  { Response, Status, { Content, _ } } = http_wrapper:execute_request(AuthenticatedRequest),
-  case Response of
-    response -> { Status, aws_response:parse_response(Content) };
-    _        -> { Status, Content }
-  end.
+  { _, _, { Content, _ } } = http_wrapper:execute_request(AuthenticatedRequest),
+  aws_response:parse_response(Content).
 
--spec create_queue(aws_sqs_client(), string()) -> response().
+-spec create_queue(aws_sqs_client(), string()) -> aws_response().
 create_queue(Client, Name) ->
   create_queue(Client, Name, #queue_attributes{}).
 
--spec create_queue(aws_sqs_client(), string(), queue_attributes()) -> response().
+-spec create_queue(aws_sqs_client(), string(), queue_attributes()) -> aws_response().
 create_queue(Client, Name, Attributes) ->
   Params = [
     param("Action", "CreateQueue"),
@@ -72,27 +69,30 @@ create_queue(Client, Name, Attributes) ->
     payload = http_wrapper:generate_params(Params)
   }).
 
--spec send_message(aws_sqs_client(), sqs_queue(), string()) -> response().
+-spec send_message(aws_sqs_client(), sqs_queue(), string()) -> aws_response().
 send_message(Client, Queue, Message) when is_list(Message) ->
   send_message(Client, Queue, #sqs_message{ content = Message });
 send_message(Client, Queue, Message) ->
   Endpoint = Client#aws_client.configuration#aws_configuration.endpoint,
   Params = [param("Action", "SendMessage") | sqs_message:to_params(Message)],
-  { Status, Response } = make_sqs_request(Client, #request{
+  Response = make_sqs_request(Client, #request{
     method  = "post",
     path    = sqs_queue:get_path(Queue, Endpoint),
     payload = http_wrapper:generate_params(Params)
   }),
-  case Status of
-    200 -> { Status, Response#aws_response.content#sqs_message{ content = Message }};
-    _   -> { Status, Response }
+  case Response#aws_response.type of
+    send_message_response ->
+      Content = Response#aws_response.content,
+      FixedContent = Content#sqs_message{ content = Message#sqs_message.content },
+      Response#aws_response{ content = FixedContent };
+    _   -> Response
   end.
 
--spec list_queues(aws_client()) -> response().
+-spec list_queues(aws_client()) -> aws_response().
 list_queues(Client) ->
   list_queues(Client, "").
 
--spec list_queues(aws_client(), string()) -> response().
+-spec list_queues(aws_client(), string()) -> aws_response().
 list_queues(Client, Prefix) ->
   make_sqs_request(Client, #request{
     query = [param("Action", "ListQueues")] ++ if
