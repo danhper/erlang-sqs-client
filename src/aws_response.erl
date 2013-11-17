@@ -4,7 +4,10 @@
 
 -import(aws_error, [parse_error_response/1]).
 
--export([parse_response/1]).
+-export([
+  parse_response/1,
+  content/1
+]).
 
 -spec parse_request_metadata(xmlElement()) -> string().
 parse_request_metadata(Xml) ->
@@ -37,5 +40,10 @@ parse_response_content(Xml) ->
   case Xml#xmlElement.name of
     'ListQueuesResult'  -> { list_queues_response, sqs_queue:parse_list_queues_result(Xml) };
     'SendMessageResult' -> { send_message_response, sqs_message:parse_sqs_message(Xml) };
+    'CreateQueueResult' -> { create_queue_result, sqs_queue:parse_create_queue_result(Xml) };
     _                   -> { unknown, Xml }
   end.
+
+-spec content(aws_response()) -> aws_result().
+content(Response) ->
+  Response#aws_response.content.

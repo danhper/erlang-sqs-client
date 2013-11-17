@@ -7,7 +7,7 @@
 
 -type xmlElement() :: #xmlElement{}.
 
--type aws_result() :: aws_error() | [sqs_queue()].
+-type aws_result() :: aws_error() | [sqs_queue()] | sqs_queue().
 
 -record(aws_response, {
   request_id  :: string(),
