@@ -23,25 +23,27 @@ parse_response(Xml) ->
 
 -spec parse_success_response(xmlElement()) -> aws_response().
 parse_success_response(Xml) ->
-  lists:foldl(fun parse_success_node/2, #aws_response{}, Xml#xmlElement.content).
+  Type = string_util:to_snake_case(Xml#xmlElement.name),
+  Response = #aws_response{ type = Type },
+  lists:foldl(fun parse_success_node/2, Response, Xml#xmlElement.content).
 
 -spec parse_success_node(xmlElement(), aws_response()) -> aws_response().
 parse_success_node(Xml, Response) ->
   case Xml#xmlElement.name of
     'ResponseMetadata' -> Response#aws_response { request_id = parse_request_metadata(Xml) };
     _ ->
-      { Type, Content } = parse_response_content(Xml),
-      Response#aws_response{ type = Type, content = Content }
+      Content = parse_response_content(Xml),
+      Response#aws_response{ content = Content }
   end.
 
 
 -spec parse_response_content(xmlElement()) -> aws_result().
 parse_response_content(Xml) ->
   case Xml#xmlElement.name of
-    'ListQueuesResult'  -> { list_queues_response, sqs_queue:parse_list_queues_result(Xml) };
-    'SendMessageResult' -> { send_message_response, sqs_message:parse_sqs_message(Xml) };
-    'CreateQueueResult' -> { create_queue_response, sqs_queue:parse_create_queue_result(Xml) };
-    _                   -> { unknown, Xml }
+    'ListQueuesResult'  -> sqs_queue:parse_list_queues_result(Xml);
+    'SendMessageResult' -> sqs_message:parse_sqs_message(Xml);
+    'CreateQueueResult' -> sqs_queue:parse_create_queue_result(Xml);
+    _                   -> Xml
   end.
 
 -spec content(aws_response()) -> aws_result().

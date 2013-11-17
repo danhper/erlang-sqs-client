@@ -10,6 +10,7 @@
 
 -import(http_wrapper, [param/2]).
 -import(aws_credentials, [authenticate_get_request/2]).
+-import(aws_client, [endpoint/1]).
 
 -export([
   create_client/3,
@@ -17,7 +18,8 @@
   create_queue/3,
   send_message/3,
   list_queues/1,
-  list_queues/2
+  list_queues/2,
+  delete_queue/2
 ]).
 
 -spec create_client(string(), string(), string()) -> aws_sqs_client().
@@ -99,4 +101,11 @@ list_queues(Client, Prefix) ->
       length(Prefix) > 0 -> [param("QueueNamePrefix", Prefix)];
       true -> []
     end
+  }).
+
+-spec delete_queue(aws_client(), sqs_queue()) -> aws_response().
+delete_queue(Client, Queue) ->
+  make_sqs_request(Client, #request{
+    path = sqs_queue:get_path(Queue, endpoint(Client)),
+    query = [param("Action", "DeleteQueue")]
   }).
