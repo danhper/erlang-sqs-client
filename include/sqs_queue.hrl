@@ -6,6 +6,7 @@
 -record(sqs_queue, {
   name       :: string(),
   url        :: string(),
+  owner_id   :: string(),
   attributes :: queue_attributes()
 }).
 

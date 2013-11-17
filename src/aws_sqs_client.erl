@@ -19,6 +19,7 @@
   send_message/3,
   list_queues/1,
   list_queues/2,
+  get_queue_url/2,
   delete_queue/2
 ]).
 
@@ -108,4 +109,17 @@ delete_queue(Client, Queue) ->
   make_sqs_request(Client, #request{
     path = sqs_queue:get_path(Queue, endpoint(Client)),
     query = [param("Action", "DeleteQueue")]
+  }).
+
+-spec get_queue_url(aws_client(), sqs_queue() | string()) -> aws_response().
+get_queue_url(Client, QueueName) when is_list(QueueName) ->
+  get_queue_url(Client, #sqs_queue{ name = QueueName });
+get_queue_url(Client, Queue) when is_record(Queue, sqs_queue) ->
+  Params = [param("Action", "GetQueueUrl"),
+            param("QueueName", Queue#sqs_queue.name)],
+  make_sqs_request(Client, #request{
+    query = case Queue#sqs_queue.owner_id of
+      undefined -> Params;
+      Owner     -> Params ++ [param("QueueOwnerAWSAccountId", Owner)]
+    end
   }).

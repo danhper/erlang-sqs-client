@@ -42,7 +42,8 @@ parse_response_content(Xml) ->
   case Xml#xmlElement.name of
     'ListQueuesResult'  -> sqs_queue:parse_list_queues_result(Xml);
     'SendMessageResult' -> sqs_message:parse_sqs_message(Xml);
-    'CreateQueueResult' -> sqs_queue:parse_create_queue_result(Xml);
+    'CreateQueueResult' -> sqs_queue:parse_single_queue_result(Xml);
+    'GetQueueUrlResult' -> sqs_queue:parse_single_queue_result(Xml);
     _                   -> Xml
   end.
 

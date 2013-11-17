@@ -5,12 +5,12 @@
 
 -export([
   parse_list_queues_result/1,
-  parse_create_queue_result/1,
+  parse_single_queue_result/1,
   get_path/2
 ]).
 
--spec parse_create_queue_result(xmlElement()) -> sqs_queue().
-parse_create_queue_result(Xml) ->
+-spec parse_single_queue_result(xmlElement()) -> sqs_queue().
+parse_single_queue_result(Xml) ->
   hd(parse_list_queues_result(Xml)).
 
 -spec parse_list_queues_result(xmlElement()) -> [sqs_queue()].
