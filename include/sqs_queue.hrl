@@ -3,12 +3,12 @@
 
 -include_lib("queue_attributes.hrl").
 
--record(queue, {
+-record(sqs_queue, {
   name       :: string(),
   url        :: string(),
   attributes :: queue_attributes()
 }).
 
--type queue() :: #queue{}.
+-type sqs_queue() :: #sqs_queue{}.
 
 -endif.

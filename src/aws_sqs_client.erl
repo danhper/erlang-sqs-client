@@ -1,19 +1,21 @@
 -module(aws_sqs_client).
 
 -include_lib("aws_sqs_client.hrl").
+-include_lib("sqs_queue.hrl").
 -include_lib("request_type.hrl").
 -include_lib("http_wrapper.hrl").
 -include_lib("queue_attributes.hrl").
+-include_lib("sqs_message.hrl").
+-include_lib("aws_response.hrl").
 
 -import(http_wrapper, [param/2]).
 -import(aws_credentials, [authenticate_get_request/2]).
 
 -export([
   create_client/3,
-  add_permission/1,
   create_queue/2,
   create_queue/3,
-  send_message/2,
+  send_message/3,
   list_queues/1,
   list_queues/2
 ]).
@@ -49,11 +51,11 @@ make_sqs_request(Client, BaseRequest) ->
     uri     = Uri
   },
   AuthenticatedRequest = aws_credentials:authenticate_request(Client, Request),
-  http_wrapper:execute_request(AuthenticatedRequest).
-
--spec add_permission(aws_sqs_client()) -> response().
-add_permission(Client) ->
-  execute_get_request(Client, "", []).
+  { Response, Status, { Content, _ } } = http_wrapper:execute_request(AuthenticatedRequest),
+  case Response of
+    response -> { Status, aws_response:parse_response(Content) };
+    _        -> { Status, Content }
+  end.
 
 -spec create_queue(aws_sqs_client(), string()) -> response().
 create_queue(Client, Name) ->
@@ -67,13 +69,19 @@ create_queue(Client, Name, Attributes) ->
   ],
   make_sqs_request(Client, #request{ query = Params }).
 
--spec send_message(aws_sqs_client(), string()) -> response().
-send_message(Client, Message) ->
-  make_sqs_request(Client, #request{
+-spec send_message(aws_sqs_client(), sqs_queue(), string()) -> response().
+send_message(Client, Queue, Message) ->
+  Endpoint = Client#aws_client.configuration#aws_configuration.endpoint,
+  { Status, Response } = make_sqs_request(Client, #request{
     method  = "post",
-    path    = "/634433121014/foo",
+    path    = sqs_queue:get_path(Queue, Endpoint),
     payload = "Action=SendMessage&MessageBody=" ++ Message
-  }).
+  }),
+  case Status of
+    200 -> { Status, Response#aws_response.content#sqs_message{ content = Message }};
+    _   -> { Status, Response }
+  end.
+
 
 -spec list_queues(aws_client()) -> response().
 list_queues(Client) ->

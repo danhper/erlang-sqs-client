@@ -35,5 +35,7 @@ parse_success_node(Xml, Response) ->
 -spec parse_response_content(xmlElement()) -> aws_result().
 parse_response_content(Xml) ->
   case Xml#xmlElement.name of
-    'ListQueuesResult' -> { list_queues_response, sqs_queue:parse_list_queues_result(Xml) }
+    'ListQueuesResult'  -> { list_queues_response, sqs_queue:parse_list_queues_result(Xml) };
+    'SendMessageResult' -> { send_message_response, sqs_message:parse_sqs_message(Xml) };
+    _                   -> { unknown, Xml }
   end.
