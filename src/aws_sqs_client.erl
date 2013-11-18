@@ -17,6 +17,7 @@
   create_queue/2,
   create_queue/3,
   send_message/3,
+  send_message_batch/3,
   list_queues/1,
   list_queues/2,
   get_queue_url/2,
@@ -123,3 +124,15 @@ get_queue_url(Client, Queue) when is_record(Queue, sqs_queue) ->
       Owner     -> Params ++ [param("QueueOwnerAWSAccountId", Owner)]
     end
   }).
+
+-spec send_message_batch(aws_client(), sqs_queue(), [sqs_message()]) -> aws_response().
+send_message_batch(Client, Queue, Messages) ->
+  Params = [param("Action", "SendMessageBatch") | sqs_message:to_params(Messages)],
+  Response = make_sqs_request(Client, #request{
+    method  = "post",
+    path    = sqs_queue:get_path(Queue, endpoint(Client)),
+    payload = http_wrapper:generate_params(Params)
+  }),
+  Content = Response#aws_response.content,
+  UpdatedMessages = sqs_message:merge_messsages_list(Messages, Content),
+  Response#aws_response{content = UpdatedMessages}.

@@ -40,11 +40,12 @@ parse_success_node(Xml, Response) ->
 -spec parse_response_content(xmlElement()) -> aws_result().
 parse_response_content(Xml) ->
   case Xml#xmlElement.name of
-    'ListQueuesResult'  -> sqs_queue:parse_list_queues_result(Xml);
-    'SendMessageResult' -> sqs_message:parse_sqs_message(Xml);
-    'CreateQueueResult' -> sqs_queue:parse_single_queue_result(Xml);
-    'GetQueueUrlResult' -> sqs_queue:parse_single_queue_result(Xml);
-    _                   -> Xml
+    'ListQueuesResult'       -> sqs_queue:parse_list_queues_result(Xml);
+    'SendMessageResult'      -> sqs_message:parse_sqs_message(Xml);
+    'CreateQueueResult'      -> sqs_queue:parse_single_queue_result(Xml);
+    'GetQueueUrlResult'      -> sqs_queue:parse_single_queue_result(Xml);
+    'SendMessageBatchResult' -> sqs_message:parse_sqs_messages_list(Xml);
+    _                        -> Xml
   end.
 
 -spec content(aws_response()) -> aws_result().
