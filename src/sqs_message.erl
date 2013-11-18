@@ -24,9 +24,28 @@ parse_sqs_message(Xml, Message) when is_record(Xml, xmlElement) ->
   end.
 
 -spec to_params(sqs_message()) -> [param()].
-to_params(Message) ->
-  Params = [param("MessageBody", Message#sqs_message.content)],
+to_params(Message) when is_record(Message, sqs_message) ->
+  to_params(Message, "");
+to_params(Messages) when is_list(Messages) ->
+  list_to_params(Messages).
+
+-spec to_params(sqs_message(), string()) -> [param()].
+to_params(Message, Prefix) ->
+  Params = [param(Prefix ++ "MessageBody", Message#sqs_message.content)],
   case Message#sqs_message.delay of
     undefined -> Params;
-    Delay     -> [param("delay", integer_to_list(Delay)) | Params]
+    Delay     -> [param(Prefix ++ "DelaySeconds", integer_to_list(Delay)) | Params]
   end.
+
+-spec list_to_params([sqs_message()]) -> [param()].
+list_to_params(Messages) -> list_to_params(Messages, [], 1).
+
+-spec list_to_params([sqs_message()], [param()], integer()) -> [param()].
+list_to_params([], Params, _) -> Params;
+list_to_params([H|T], Params, N) ->
+  list_to_params(T, param_for_list(H, N) ++ Params, N + 1).
+
+-spec param_for_list(sqs_message(), integer()) -> [param()].
+param_for_list(Message, N) ->
+  Prefix = "SendMessageBatchRequestEntry." ++ integer_to_list(N) ++ ".",
+  [param(Prefix ++ "Id", Message#sqs_message.id) |  to_params(Message, Prefix)].
