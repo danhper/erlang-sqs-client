@@ -16,12 +16,12 @@
   create_client/3,
   create_queue/2,
   create_queue/3,
-  send_message/3,
-  send_message_batch/3,
   list_queues/1,
   list_queues/2,
   get_queue_url/2,
   delete_queue/2,
+  send_message/3,
+  send_message_batch/3,
   receive_message/2,
   receive_message/3,
   receive_message/4,
@@ -90,13 +90,6 @@ list_queues(Client, Prefix) ->
     end
   }).
 
--spec delete_queue(aws_client(), sqs_queue()) -> aws_response().
-delete_queue(Client, Queue) ->
-  make_sqs_request(Client, #request{
-    path = sqs_queue:get_path(Queue, endpoint(Client)),
-    query = [param("Action", "DeleteQueue")]
-  }).
-
 -spec get_queue_url(aws_client(), sqs_queue() | string()) -> aws_response().
 get_queue_url(Client, QueueName) when is_list(QueueName) ->
   get_queue_url(Client, #sqs_queue{ name = QueueName });
@@ -110,9 +103,16 @@ get_queue_url(Client, Queue) when is_record(Queue, sqs_queue) ->
     end
   }).
 
--spec send_message(aws_sqs_client(), sqs_queue(), string()) -> aws_response().
+-spec delete_queue(aws_client(), sqs_queue()) -> aws_response().
+delete_queue(Client, Queue) ->
+  make_sqs_request(Client, #request{
+    path = sqs_queue:get_path(Queue, endpoint(Client)),
+    query = [param("Action", "DeleteQueue")]
+  }).
+
+-spec send_message(aws_sqs_client(), sqs_queue(), sqs_message() | string()) -> aws_response().
 send_message(Client, Queue, Message) when is_list(Message) ->
-  send_message(Client, Queue, #sqs_message{ content = Message });
+  send_message(Client, Queue, #sqs_message{ body = Message });
 send_message(Client, Queue, Message) ->
   Endpoint = Client#aws_client.configuration#aws_configuration.endpoint,
   Params = [param("Action", "SendMessage") | sqs_message:to_params(Message)],
@@ -124,7 +124,7 @@ send_message(Client, Queue, Message) ->
   case Response#aws_response.type of
     send_message_response ->
       Content = Response#aws_response.content,
-      FixedContent = Content#sqs_message{ content = Message#sqs_message.content, queue = Queue },
+      FixedContent = Content#sqs_message{ body = Message#sqs_message.body, queue = Queue },
       Response#aws_response{ content = FixedContent };
     _   -> Response
   end.

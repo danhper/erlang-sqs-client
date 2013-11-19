@@ -8,9 +8,9 @@
   id               :: string(),
   queue            :: sqs_message(),
   message_id       :: string(),
-  content          :: string(),
+  body             :: string(),
   md5sum           :: string(),
-  delay            :: integer(),
+  delay_seconds    :: integer(),
   receipt_handle   :: string(),
   attributes = #message_attributes{} :: message_attributes()
 }).

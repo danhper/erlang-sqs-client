@@ -31,7 +31,7 @@ parse_sqs_message(Xml, Message) when is_record(Xml, xmlElement) ->
     'MessageId'        -> Message#sqs_message{ message_id = get_text(Xml) };
     'Id'               -> Message#sqs_message{ id = get_text(Xml) };
     'ReceiptHandle'    -> Message#sqs_message{ receipt_handle = get_text(Xml) };
-    'Body'             -> Message#sqs_message{ content = get_text(Xml) };
+    'Body'             -> Message#sqs_message{ body = get_text(Xml) };
     'Attribute'        ->
       Attributes = Message#sqs_message.attributes,
       NewAttributes = message_attributes:parse_attribute(Xml#xmlElement.content, Attributes),
@@ -39,7 +39,7 @@ parse_sqs_message(Xml, Message) when is_record(Xml, xmlElement) ->
     _                  -> Message
   end.
 
--spec to_params(sqs_message()) -> [param()].
+-spec to_params(sqs_message() | [sqs_message()]) -> [param()].
 to_params(Message) when is_record(Message, sqs_message) ->
   to_params(Message, "");
 to_params(Messages) when is_list(Messages) ->
@@ -47,8 +47,8 @@ to_params(Messages) when is_list(Messages) ->
 
 -spec to_params(sqs_message(), string()) -> [param()].
 to_params(Message, Prefix) ->
-  Params = [param(Prefix ++ "MessageBody", Message#sqs_message.content)],
-  case Message#sqs_message.delay of
+  Params = [param(Prefix ++ "MessageBody", Message#sqs_message.body)],
+  case Message#sqs_message.delay_seconds of
     undefined -> Params;
     Delay     -> [param(Prefix ++ "DelaySeconds", integer_to_list(Delay)) | Params]
   end.
@@ -74,7 +74,7 @@ merge_messsages_list(BaseMessages, ResponseMessages) ->
 -spec merge_messsages(dict(), sqs_message()) -> sqs_message().
 merge_messsages(MessagesDict, ResponseMessage) ->
   Message = dict:fetch(ResponseMessage#sqs_message.id, MessagesDict),
-  ResponseMessage#sqs_message{ content = Message#sqs_message.content }.
+  ResponseMessage#sqs_message{ body = Message#sqs_message.body }.
 
 -spec receive_message_options_to_params(receive_message_options()) -> [param()].
 receive_message_options_to_params(Options) ->
