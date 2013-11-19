@@ -21,7 +21,10 @@
   list_queues/1,
   list_queues/2,
   get_queue_url/2,
-  delete_queue/2
+  delete_queue/2,
+  receive_message/2,
+  receive_message/3,
+  receive_message/4
 ]).
 
 -spec create_client(string(), string(), string()) -> aws_sqs_client().
@@ -136,3 +139,21 @@ send_message_batch(Client, Queue, Messages) ->
   Content = Response#aws_response.content,
   UpdatedMessages = sqs_message:merge_messsages_list(Messages, Content),
   Response#aws_response{content = UpdatedMessages}.
+
+-spec receive_message(aws_client(), sqs_queue()) -> aws_response().
+receive_message(Client, Queue) -> receive_message(Client, Queue, #receive_message_options{}).
+
+-spec receive_message(aws_client(), sqs_queue(), receive_message_options()) -> aws_response().
+receive_message(Client, Queue, Options) -> receive_message(Client, Queue, Options, []).
+
+-spec receive_message(aws_client(), sqs_queue(), receive_message_options(), [string()] | boolean()) -> aws_response().
+receive_message(Client, Queue, Options, true) -> receive_message(Client, Queue, Options, ["all"]);
+receive_message(Client, Queue, Options, false) -> receive_message(Client, Queue, Options, []);
+receive_message(Client, Queue, Options, NeededAttrs) ->
+  OptionsParams = sqs_message:receive_message_options_to_params(Options),
+  AttrsParams = message_attributes:needed_attributes_params(NeededAttrs),
+  Params = [param("Action", "ReceiveMessage")|OptionsParams ++ AttrsParams],
+  make_sqs_request(Client, #request{
+    path  = sqs_queue:get_path(Queue, endpoint(Client)),
+    query = Params
+  }).

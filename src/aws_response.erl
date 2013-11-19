@@ -45,6 +45,7 @@ parse_response_content(Xml) ->
     'CreateQueueResult'      -> sqs_queue:parse_single_queue_result(Xml);
     'GetQueueUrlResult'      -> sqs_queue:parse_single_queue_result(Xml);
     'SendMessageBatchResult' -> sqs_message:parse_sqs_messages_list(Xml);
+    'ReceiveMessageResult'   -> sqs_message:parse_sqs_messages_list(Xml);
     _                        -> Xml
   end.
 

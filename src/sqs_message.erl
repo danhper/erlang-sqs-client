@@ -10,7 +10,8 @@
   parse_sqs_message/1,
   parse_sqs_messages_list/1,
   to_params/1,
-  merge_messsages_list/2
+  merge_messsages_list/2,
+  receive_message_options_to_params/1
 ]).
 
 -spec parse_sqs_messages_list(xmlElement()) -> [sqs_message()].
@@ -25,8 +26,15 @@ parse_sqs_message(Xml) ->
 parse_sqs_message(Xml, Message) when is_record(Xml, xmlElement) ->
   case Xml#xmlElement.name of
     'MD5OfMessageBody' -> Message#sqs_message{ md5sum = get_text(Xml) };
+    'MD5OfBody'        -> Message#sqs_message{ md5sum = get_text(Xml) };
     'MessageId'        -> Message#sqs_message{ message_id = get_text(Xml) };
     'Id'               -> Message#sqs_message{ id = get_text(Xml) };
+    'ReceiptHandle'    -> Message#sqs_message{ receipt_handle = get_text(Xml) };
+    'Body'             -> Message#sqs_message{ content = get_text(Xml) };
+    'Attribute'        ->
+      Attributes = Message#sqs_message.attributes,
+      NewAttributes = message_attributes:parse_attribute(Xml#xmlElement.content, Attributes),
+      Message#sqs_message{ attributes = NewAttributes };
     _                  -> Message
   end.
 
@@ -66,3 +74,14 @@ merge_messsages_list(BaseMessages, ResponseMessages) ->
 merge_messsages(MessagesDict, ResponseMessage) ->
   Message = dict:fetch(ResponseMessage#sqs_message.id, MessagesDict),
   ResponseMessage#sqs_message{ content = Message#sqs_message.content }.
+
+-spec receive_message_options_to_params(receive_message_options()) -> [param()].
+receive_message_options_to_params(Options) ->
+  add_if_defined("MaxNumberOfMessages", Options#receive_message_options.max_number_of_messages) ++
+  add_if_defined("VisibilityTimeout", Options#receive_message_options.visibility_timeout) ++
+  add_if_defined(" WaitTimeSeconds ", Options#receive_message_options.wait_time_seconds).
+
+-spec add_if_defined(string(), any()) -> [param()].
+add_if_defined(_, undefined) -> [];
+add_if_defined(Key, Value) when is_integer(Value) -> [param(Key, integer_to_list(Value))];
+add_if_defined(Key, Value) -> [param(Key, Value)].
