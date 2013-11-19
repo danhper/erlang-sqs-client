@@ -24,7 +24,8 @@
   delete_queue/2,
   receive_message/2,
   receive_message/3,
-  receive_message/4
+  receive_message/4,
+  delete_message/2
 ]).
 
 -spec create_client(string(), string(), string()) -> aws_sqs_client().
@@ -76,25 +77,6 @@ create_queue(Client, Name, Attributes) ->
     payload = http_wrapper:generate_params(Params)
   }).
 
--spec send_message(aws_sqs_client(), sqs_queue(), string()) -> aws_response().
-send_message(Client, Queue, Message) when is_list(Message) ->
-  send_message(Client, Queue, #sqs_message{ content = Message });
-send_message(Client, Queue, Message) ->
-  Endpoint = Client#aws_client.configuration#aws_configuration.endpoint,
-  Params = [param("Action", "SendMessage") | sqs_message:to_params(Message)],
-  Response = make_sqs_request(Client, #request{
-    method  = "post",
-    path    = sqs_queue:get_path(Queue, Endpoint),
-    payload = http_wrapper:generate_params(Params)
-  }),
-  case Response#aws_response.type of
-    send_message_response ->
-      Content = Response#aws_response.content,
-      FixedContent = Content#sqs_message{ content = Message#sqs_message.content },
-      Response#aws_response{ content = FixedContent };
-    _   -> Response
-  end.
-
 -spec list_queues(aws_client()) -> aws_response().
 list_queues(Client) ->
   list_queues(Client, "").
@@ -128,6 +110,25 @@ get_queue_url(Client, Queue) when is_record(Queue, sqs_queue) ->
     end
   }).
 
+-spec send_message(aws_sqs_client(), sqs_queue(), string()) -> aws_response().
+send_message(Client, Queue, Message) when is_list(Message) ->
+  send_message(Client, Queue, #sqs_message{ content = Message });
+send_message(Client, Queue, Message) ->
+  Endpoint = Client#aws_client.configuration#aws_configuration.endpoint,
+  Params = [param("Action", "SendMessage") | sqs_message:to_params(Message)],
+  Response = make_sqs_request(Client, #request{
+    method  = "post",
+    path    = sqs_queue:get_path(Queue, Endpoint),
+    payload = http_wrapper:generate_params(Params)
+  }),
+  case Response#aws_response.type of
+    send_message_response ->
+      Content = Response#aws_response.content,
+      FixedContent = Content#sqs_message{ content = Message#sqs_message.content, queue = Queue },
+      Response#aws_response{ content = FixedContent };
+    _   -> Response
+  end.
+
 -spec send_message_batch(aws_client(), sqs_queue(), [sqs_message()]) -> aws_response().
 send_message_batch(Client, Queue, Messages) ->
   Params = [param("Action", "SendMessageBatch") | sqs_message:to_params(Messages)],
@@ -138,7 +139,8 @@ send_message_batch(Client, Queue, Messages) ->
   }),
   Content = Response#aws_response.content,
   UpdatedMessages = sqs_message:merge_messsages_list(Messages, Content),
-  Response#aws_response{content = UpdatedMessages}.
+  MessagesWithQueue = sqs_message:set_queue(UpdatedMessages, Queue),
+  Response#aws_response{ content = MessagesWithQueue }.
 
 -spec receive_message(aws_client(), sqs_queue()) -> aws_response().
 receive_message(Client, Queue) -> receive_message(Client, Queue, #receive_message_options{}).
@@ -153,7 +155,19 @@ receive_message(Client, Queue, Options, NeededAttrs) ->
   OptionsParams = sqs_message:receive_message_options_to_params(Options),
   AttrsParams = message_attributes:needed_attributes_params(NeededAttrs),
   Params = [param("Action", "ReceiveMessage")|OptionsParams ++ AttrsParams],
-  make_sqs_request(Client, #request{
+  Response = make_sqs_request(Client, #request{
     path  = sqs_queue:get_path(Queue, endpoint(Client)),
     query = Params
+  }),
+  Content = Response#aws_response.content,
+  MessagesWithQueue = sqs_message:set_queue(Content, Queue),
+  Response#aws_response{ content = MessagesWithQueue }.
+
+-spec delete_message(aws_client(), sqs_message()) -> aws_response().
+delete_message(Client, Message) ->
+  Params = [param("Action", "DeleteMessage"), param("ReceiptHandle", Message#sqs_message.receipt_handle)],
+  make_sqs_request(Client, #request{
+    method  = "post",
+    path    = sqs_queue:get_path(Message#sqs_message.queue, endpoint(Client)),
+    payload = http_wrapper:generate_params(Params)
   }).

@@ -2,9 +2,11 @@
 -define(SQS_MESSAGE_HRL, 1).
 
 -include_lib("message_attributes.hrl").
+-include_lib("sqs_queue.hrl").
 
 -record(sqs_message, {
   id               :: string(),
+  queue            :: sqs_message(),
   message_id       :: string(),
   content          :: string(),
   md5sum           :: string(),

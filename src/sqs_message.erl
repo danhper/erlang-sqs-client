@@ -11,7 +11,8 @@
   parse_sqs_messages_list/1,
   to_params/1,
   merge_messsages_list/2,
-  receive_message_options_to_params/1
+  receive_message_options_to_params/1,
+  set_queue/2
 ]).
 
 -spec parse_sqs_messages_list(xmlElement()) -> [sqs_message()].
@@ -85,3 +86,9 @@ receive_message_options_to_params(Options) ->
 add_if_defined(_, undefined) -> [];
 add_if_defined(Key, Value) when is_integer(Value) -> [param(Key, integer_to_list(Value))];
 add_if_defined(Key, Value) -> [param(Key, Value)].
+
+-spec set_queue(sqs_message() | [sqs_message()], sqs_queue()) -> sqs_message().
+set_queue(Message, Queue) when is_record(Message, sqs_message) ->
+  Message#sqs_message{ queue = Queue };
+set_queue(Messages, Queue) when is_list(Messages) ->
+  lists:map((fun(M) -> M#sqs_message{ queue = Queue } end), Messages).
